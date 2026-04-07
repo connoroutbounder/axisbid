@@ -1,0 +1,262 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String?
+  role          Role      @default(CUSTOMER)
+  emailVerified DateTime?
+  image         String?
+  company       String?
+  phone         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  jobs          Job[]
+  shop          Shop?
+  accounts      Account[]
+  sessions      Session[]
+  reviews       Review[]
+}
+
+enum Role {
+  CUSTOMER
+  SHOP_OWNER
+  ADMIN
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Shop {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  name            String
+  description     String?  @db.Text
+  address         String?
+  city            String?
+  state           String?
+  zipCode         String?
+  phone           String?
+  website         String?
+  yearsInBusiness Int?
+  employeeCount   Int?
+
+  // Capabilities
+  machines        Machine[]
+  certifications  String[]
+  materials       String[]
+  maxPartSize     String?
+
+  // Marketplace
+  rating          Float      @default(0)
+  totalJobs       Int        @default(0)
+  completedJobs   Int        @default(0)
+  onTimeRate      Float      @default(100)
+  isVerified      Boolean    @default(false)
+  isActive        Boolean    @default(true)
+
+  // Stripe
+  stripeAccountId String?
+  stripeOnboarded Boolean    @default(false)
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  user            User       @relation(fields: [userId], references: [id])
+  bids            Bid[]
+  reviews         Review[]
+}
+
+model Machine {
+  id          String  @id @default(cuid())
+  shopId      String
+  name        String
+  type        MachineType
+  axes        Int?
+  brand       String?
+  model       String?
+  maxTravel   String?
+  tolerance   String?
+
+  shop        Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+}
+
+enum MachineType {
+  CNC_MILL
+  CNC_LATHE
+  CNC_ROUTER
+  EDM_WIRE
+  EDM_SINKER
+  SURFACE_GRINDER
+  CYLINDRICAL_GRINDER
+  FIVE_AXIS
+  SWISS_LATHE
+  OTHER
+}
+
+model Job {
+  id              String    @id @default(cuid())
+  userId          String
+  title           String?
+  status          JobStatus @default(PENDING)
+
+  // Part specs
+  material        String
+  surfaceFinish   String?
+  tolerance       String
+  quantity        Int
+  neededBy        DateTime?
+  notes           String?   @db.Text
+
+  // File
+  fileName        String
+  fileUrl         String
+  fileSize        Int
+
+  // Parsed geometry
+  boundingBox     Json?
+  volume          Float?
+  surfaceArea     Float?
+  faceCount       Int?
+  edgeCount       Int?
+  holeCount       Int?
+  pocketCount     Int?
+  complexity      String?
+  renderUrls      String[]
+
+  // AI Estimate
+  aiEstimateLow   Float?
+  aiEstimateHigh  Float?
+  aiEstimateMid   Float?
+  aiConfidence    Float?
+  aiReasoning     String?   @db.Text
+
+  // Accepted bid
+  acceptedBidId   String?   @unique
+  acceptedAt      DateTime?
+
+  // Payment
+  totalPrice      Float?
+  platformFee     Float?
+  shopPayout      Float?
+  stripePaymentId String?
+  paidAt          DateTime?
+
+  // Delivery
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  trackingNumber  String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  bidDeadline     DateTime?
+
+  user            User      @relation(fields: [userId], references: [id])
+  acceptedBid     Bid?      @relation("AcceptedBid", fields: [acceptedBidId], references: [id])
+  bids            Bid[]     @relation("JobBids")
+  review          Review?
+}
+
+enum JobStatus {
+  PENDING
+  QUOTING
+  BIDDING
+  AWARDED
+  IN_PRODUCTION
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+model Bid {
+  id            String    @id @default(cuid())
+  jobId         String
+  shopId        String
+
+  price         Float
+  estimatedDays Int
+  notes         String?   @db.Text
+  approach      String?   @db.Text
+
+  status        BidStatus @default(PENDING)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  expiresAt     DateTime?
+
+  job           Job       @relation("JobBids", fields: [jobId], references: [id])
+  shop          Shop      @relation(fields: [shopId], references: [id])
+  wonJob        Job?      @relation("AcceptedBid")
+
+  @@unique([jobId, shopId])
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  EXPIRED
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  jobId       String   @unique
+  userId      String
+  shopId      String
+
+  rating      Int
+  quality     Int?
+  timeliness  Int?
+  communication Int?
+  comment     String?  @db.Text
+
+  createdAt   DateTime @default(now())
+
+  job         Job      @relation(fields: [jobId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+  shop        Shop     @relation(fields: [shopId], references: [id])
+}

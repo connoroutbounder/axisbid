@@ -1,0 +1,18 @@
+{
+  "project": {
+    "name": "AxisBid Platform",
+    "description": "CNC machining bid-to-quote marketplace. Engineers upload STEP files, get AI-powered instant estimates from Claude, then vetted machine shops bid competitively. 20% take rate.",
+    "type": "next.js"
+  },
+  "commands": {
+    "dev": "npm run dev",
+    "build": "npm run build",
+    "lint": "npm run lint",
+    "db:push": "npx prisma db push",
+    "db:migrate": "npx prisma migrate dev",
+    "db:seed": "npx prisma db seed",
+    "db:studio": "npx prisma studio",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  }
+}

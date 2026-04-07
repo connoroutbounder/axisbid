@@ -1,0 +1,16 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npx prisma generate && next build",
+  "installCommand": "npm install",
+  "env": {
+    "DATABASE_URL": "@database-url",
+    "NEXTAUTH_SECRET": "@nextauth-secret",
+    "ANTHROPIC_API_KEY": "@anthropic-api-key",
+    "STRIPE_SECRET_KEY": "@stripe-secret-key",
+    "STRIPE_PUBLISHABLE_KEY": "@stripe-publishable-key",
+    "AWS_ACCESS_KEY_ID": "@aws-access-key-id",
+    "AWS_SECRET_ACCESS_KEY": "@aws-secret-access-key",
+    "S3_BUCKET": "@s3-bucket",
+    "RESEND_API_KEY": "@resend-api-key"
+  }
+}
