@@ -1,31 +1,84 @@
 'use client'
 
 import { useState } from 'react'
+import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
-import { Mail, Lock, User } from 'lucide-react'
+import { LocationInput } from '@/components/ui/location-input'
+import { Mail, Lock, User, Building2 } from 'lucide-react'
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
   const [role, setRole] = useState<'customer' | 'shop'>('customer')
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
+    shopName: '',
+  })
+  const [location, setLocation] = useState({
+    city: '',
+    state: '',
+    zipCode: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match')
+      setError('Passwords do not match')
       return
     }
     setIsLoading(true)
-    // API call will be made here
-    setTimeout(() => setIsLoading(false), 1000)
+    setError('')
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          role: role === 'shop' ? 'SHOP_OWNER' : 'CUSTOMER',
+          city: location.city,
+          state: location.state,
+          zipCode: location.zipCode,
+          shopName: role === 'shop' ? formData.shopName : undefined,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(typeof data.error === 'string' ? data.error : 'Registration failed')
+        return
+      }
+
+      // Auto sign-in after registration
+      const signInResult = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      })
+
+      if (signInResult?.error) {
+        // Registration succeeded but sign-in failed — redirect to login
+        router.push('/login')
+      } else {
+        router.push(role === 'shop' ? '/shop/register' : '/dashboard')
+        router.refresh()
+      }
+    } catch {
+      setError('An unexpected error occurred')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -38,6 +91,12 @@ export default function RegisterPage() {
       </div>
 
       <Card>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+
         {/* Role Selection */}
         <div className="mb-6">
           <p className="text-sm font-semibold text-gray-700 mb-3">
@@ -82,6 +141,20 @@ export default function RegisterPage() {
             required
           />
 
+          {role === 'shop' && (
+            <Input
+              label="Shop Name"
+              type="text"
+              placeholder="e.g. Precision Parts LLC"
+              value={formData.shopName}
+              onChange={(e) =>
+                setFormData({ ...formData, shopName: e.target.value })
+              }
+              icon={<Building2 className="w-5 h-5" />}
+              required
+            />
+          )}
+
           <Input
             label="Email Address"
             type="email"
@@ -118,6 +191,8 @@ export default function RegisterPage() {
             icon={<Lock className="w-5 h-5" />}
             required
           />
+
+          <LocationInput value={location} onChange={setLocation} />
 
           <div className="flex items-start gap-2">
             <input
@@ -163,6 +238,7 @@ export default function RegisterPage() {
           variant="outline"
           size="lg"
           className="w-full"
+          onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
         >
           Continue with Google
         </Button>

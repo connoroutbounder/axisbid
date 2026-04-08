@@ -54,13 +54,13 @@ export function Navbar() {
                 Dashboard
               </Link>
               <Link
-                href="/dashboard/jobs"
+                href="/jobs"
                 className="hover:text-brand-orange transition-colors"
               >
                 My Jobs
               </Link>
               <Link
-                href="/dashboard/quote/new"
+                href="/quote/new"
                 className="px-4 py-2 bg-brand-orange rounded-lg hover:bg-orange-500 transition-colors"
               >
                 Get Quote
@@ -69,13 +69,13 @@ export function Navbar() {
           ) : userRole === 'shop' ? (
             <>
               <Link
-                href="/dashboard/shop"
+                href="/shop"
                 className="hover:text-brand-orange transition-colors"
               >
                 Dashboard
               </Link>
               <Link
-                href="/dashboard/shop"
+                href="/shop"
                 className="hover:text-brand-orange transition-colors"
               >
                 Available Jobs
@@ -105,18 +105,21 @@ export function Navbar() {
               <>
                 <Link
                   href="/"
+                  onClick={() => setMobileMenuOpen(false)}
                   className="block py-2 hover:text-brand-orange transition-colors"
                 >
                   How It Works
                 </Link>
                 <Link
                   href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
                   className="block py-2 hover:text-brand-orange transition-colors"
                 >
                   Login
                 </Link>
                 <Link
                   href="/register"
+                  onClick={() => setMobileMenuOpen(false)}
                   className="block py-2 px-4 bg-brand-orange rounded-lg hover:bg-orange-500 transition-colors text-center"
                 >
                   Get Started
@@ -126,18 +129,21 @@ export function Navbar() {
               <>
                 <Link
                   href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
                   className="block py-2 hover:text-brand-orange transition-colors"
                 >
                   Dashboard
                 </Link>
                 <Link
-                  href="/dashboard/jobs"
+                  href="/jobs"
+                  onClick={() => setMobileMenuOpen(false)}
                   className="block py-2 hover:text-brand-orange transition-colors"
                 >
                   My Jobs
                 </Link>
                 <Link
-                  href="/dashboard/quote/new"
+                  href="/quote/new"
+                  onClick={() => setMobileMenuOpen(false)}
                   className="block py-2 px-4 bg-brand-orange rounded-lg hover:bg-orange-500 transition-colors text-center"
                 >
                   Get Quote
@@ -146,13 +152,15 @@ export function Navbar() {
             ) : userRole === 'shop' ? (
               <>
                 <Link
-                  href="/dashboard/shop"
+                  href="/shop"
+                  onClick={() => setMobileMenuOpen(false)}
                   className="block py-2 hover:text-brand-orange transition-colors"
                 >
                   Dashboard
                 </Link>
                 <Link
-                  href="/dashboard/shop"
+                  href="/shop"
+                  onClick={() => setMobileMenuOpen(false)}
                   className="block py-2 hover:text-brand-orange transition-colors"
                 >
                   Available Jobs

@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { authOptions } from '@/lib/auth'
-import { uploadFile } from '@/lib/s3'
+import { uploadFile } from '@/lib/supabase'
 import { parseSTEPFile, estimateComplexity } from '@/lib/step-parser'
 
 export async function POST(request: NextRequest) {

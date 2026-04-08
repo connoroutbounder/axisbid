@@ -1,129 +1,133 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import Link from 'next/link'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { StatCard } from '@/components/ui/stat-card'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs } from '@/components/ui/tabs'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, formatDate } from '@/lib/utils'
 import { Hammer, Clock, CheckCircle, DollarSign } from 'lucide-react'
 
-const availableJobs = [
-  {
-    id: '1',
-    name: 'Aluminum Bracket Assembly',
-    material: 'Aluminum 6061',
-    quantity: 50,
-    aiEstimate: { mid: 3500 },
-    bidCount: 3,
-    deadline: '2026-05-01',
-  },
-  {
-    id: '2',
-    name: 'Steel Mounting Plate',
-    material: 'Steel 4140',
-    quantity: 25,
-    aiEstimate: { mid: 2000 },
-    bidCount: 1,
-    deadline: '2026-04-28',
-  },
-]
+interface Job {
+  id: string
+  title: string | null
+  material: string
+  quantity: number
+  tolerance: string
+  neededBy: string | null
+  status: string
+  bids: { id: string }[]
+}
 
-const myBids = [
-  {
-    id: '1',
-    jobName: 'Stainless Steel Manifold',
-    price: 4200,
-    status: 'pending',
-    submittedAt: '2026-04-05',
-  },
-  {
-    id: '2',
-    jobName: 'Titanium Aerospace Part',
-    price: 8500,
-    status: 'accepted',
-    submittedAt: '2026-04-02',
-  },
-]
-
-const activeJobs = [
-  {
-    id: '1',
-    name: 'Aluminum Bracket Assembly',
-    startDate: '2026-04-06',
-    estimatedCompletion: '2026-04-13',
-    progress: 45,
-  },
-]
-
-const completedJobs = [
-  {
-    id: '1',
-    name: 'Stainless Steel Manifold',
-    earnings: 4200,
-    completedAt: '2026-03-28',
-    onTime: true,
-  },
-  {
-    id: '2',
-    name: 'Aluminum Components',
-    earnings: 3100,
-    completedAt: '2026-03-15',
-    onTime: true,
-  },
-]
+interface ShopBid {
+  id: string
+  price: number
+  estimatedDays: number
+  status: string
+  createdAt: string
+  job: {
+    id: string
+    title: string | null
+    material: string
+    status: string
+  }
+}
 
 export default function ShopDashboardPage() {
+  const { data: session } = useSession()
+  const [availableJobs, setAvailableJobs] = useState<Job[]>([])
+  const [myBids, setMyBids] = useState<ShopBid[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!session?.user?.id) return
+    async function fetchData() {
+      try {
+        const [jobsRes, bidsRes] = await Promise.all([
+          fetch('/api/jobs?status=BIDDING'),
+          fetch('/api/shops/me/bids'),
+        ])
+
+        if (jobsRes.ok) {
+          const data = await jobsRes.json()
+          setAvailableJobs(data.jobs || [])
+        }
+        if (bidsRes.ok) {
+          const data = await bidsRes.json()
+          setMyBids(data || [])
+        }
+      } catch (error) {
+        console.error('Failed to fetch shop data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [session?.user?.id])
+
+  const pendingBids = myBids.filter((b) => b.status === 'PENDING')
+  const acceptedBids = myBids.filter((b) => b.status === 'ACCEPTED')
+  const totalEarnings = acceptedBids.reduce((sum, b) => sum + b.price, 0)
+
+  const bidStatusVariant: Record<string, string> = {
+    PENDING: 'pending',
+    ACCEPTED: 'accepted',
+    REJECTED: 'default',
+    WITHDRAWN: 'default',
+    EXPIRED: 'default',
+  }
+
   const tabs = [
     {
       label: 'Available Jobs',
       value: 'available',
-      content: (
+      content: loading ? (
+        <Card>
+          <div className="animate-pulse space-y-4">
+            {[1, 2].map((i) => <div key={i} className="h-24 bg-gray-100 rounded" />)}
+          </div>
+        </Card>
+      ) : availableJobs.length === 0 ? (
+        <Card>
+          <div className="text-center py-12">
+            <p className="text-gray-600">No jobs available for bidding right now. Check back soon!</p>
+          </div>
+        </Card>
+      ) : (
         <div className="space-y-4">
           {availableJobs.map((job) => (
             <Card key={job.id}>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-900">
-                    {job.name}
+                    {job.title || job.material}
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
                     <div>
-                      <p className="text-xs text-gray-600 uppercase font-semibold">
-                        Material
-                      </p>
-                      <p className="text-gray-900 font-medium mt-1">
-                        {job.material}
-                      </p>
+                      <p className="text-xs text-gray-600 uppercase font-semibold">Material</p>
+                      <p className="text-gray-900 font-medium mt-1">{job.material}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600 uppercase font-semibold">
-                        Quantity
-                      </p>
-                      <p className="text-gray-900 font-medium mt-1">
-                        {job.quantity}
-                      </p>
+                      <p className="text-xs text-gray-600 uppercase font-semibold">Quantity</p>
+                      <p className="text-gray-900 font-medium mt-1">{job.quantity}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600 uppercase font-semibold">
-                        AI Estimate
-                      </p>
-                      <p className="text-gray-900 font-medium mt-1">
-                        {formatPrice(job.aiEstimate.mid)}
-                      </p>
+                      <p className="text-xs text-gray-600 uppercase font-semibold">Tolerance</p>
+                      <p className="text-gray-900 font-medium mt-1">{job.tolerance}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600 uppercase font-semibold">
-                        Bids
-                      </p>
-                      <p className="text-gray-900 font-medium mt-1">
-                        {job.bidCount}
-                      </p>
+                      <p className="text-xs text-gray-600 uppercase font-semibold">Bids</p>
+                      <p className="text-gray-900 font-medium mt-1">{job.bids.length}</p>
                     </div>
                   </div>
                 </div>
-                <Button variant="primary" size="lg">
-                  View & Bid
-                </Button>
+                <Link href={`/jobs/${job.id}`}>
+                  <Button variant="primary" size="lg">View & Bid</Button>
+                </Link>
               </div>
             </Card>
           ))}
@@ -133,154 +137,48 @@ export default function ShopDashboardPage() {
     {
       label: 'My Bids',
       value: 'bids',
-      content: (
+      content: loading ? (
+        <Card><div className="animate-pulse h-32 bg-gray-100 rounded" /></Card>
+      ) : myBids.length === 0 ? (
+        <Card>
+          <div className="text-center py-12">
+            <p className="text-gray-600">You haven&apos;t submitted any bids yet.</p>
+          </div>
+        </Card>
+      ) : (
         <Card>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Job Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Your Quote
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Submitted
-                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Job</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Your Quote</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Submitted</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {myBids.map((bid) => (
                   <tr key={bid.id} className="border-b border-gray-200 hover:bg-gray-50">
                     <td className="px-6 py-4">
-                      <p className="font-medium text-gray-900">{bid.jobName}</p>
+                      <p className="font-medium text-gray-900">{bid.job.title || bid.job.material}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="font-bold text-brand-orange">
-                        {formatPrice(bid.price)}
-                      </p>
+                      <p className="font-bold text-brand-orange">{formatPrice(bid.price)}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge
-                        variant={
-                          bid.status === 'accepted' ? 'accepted' : 'pending'
-                        }
-                      >
-                        {bid.status === 'accepted'
-                          ? 'Accepted'
-                          : 'Pending Review'}
+                      <Badge variant={(bidStatusVariant[bid.status] || 'default') as any}>
+                        {bid.status === 'ACCEPTED' ? 'Accepted' : bid.status === 'PENDING' ? 'Pending Review' : bid.status}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-gray-600">
-                      {new Date(bid.submittedAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      ),
-    },
-    {
-      label: 'Active Jobs',
-      value: 'active',
-      content: (
-        <div className="space-y-4">
-          {activeJobs.map((job) => (
-            <Card key={job.id}>
-              <div className="flex items-start justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {job.name}
-                </h3>
-                <Badge variant="active">In Production</Badge>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div>
-                  <p className="text-xs text-gray-600 uppercase font-semibold">
-                    Start Date
-                  </p>
-                  <p className="text-gray-900 font-medium mt-1">
-                    {new Date(job.startDate).toLocaleDateString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600 uppercase font-semibold">
-                    Est. Completion
-                  </p>
-                  <p className="text-gray-900 font-medium mt-1">
-                    {new Date(job.estimatedCompletion).toLocaleDateString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600 uppercase font-semibold">
-                    Progress
-                  </p>
-                  <p className="text-gray-900 font-medium mt-1">
-                    {job.progress}%
-                  </p>
-                </div>
-              </div>
-
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-brand-blue h-2 rounded-full transition-all"
-                  style={{ width: `${job.progress}%` }}
-                />
-              </div>
-            </Card>
-          ))}
-        </div>
-      ),
-    },
-    {
-      label: 'Completed',
-      value: 'completed',
-      content: (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Job Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Earnings
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Completed
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {completedJobs.map((job) => (
-                  <tr key={job.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-gray-900">{job.name}</p>
+                      {formatDate(bid.createdAt)}
                     </td>
                     <td className="px-6 py-4">
-                      <p className="font-bold text-brand-green">
-                        {formatPrice(job.earnings)}
-                      </p>
-                    </td>
-                    <td className="px-6 py-4">
-                      {job.onTime ? (
-                        <Badge variant="success">On Time</Badge>
-                      ) : (
-                        <Badge variant="warning">Late</Badge>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {new Date(job.completedAt).toLocaleDateString()}
+                      <Link href={`/jobs/${bid.job.id}`}>
+                        <Button variant="ghost" size="sm">View</Button>
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -295,33 +193,29 @@ export default function ShopDashboardPage() {
   return (
     <DashboardLayout userRole="shop">
       <div className="space-y-8">
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <StatCard
             label="Available Jobs"
-            value="12"
+            value={loading ? '...' : String(availableJobs.length)}
             icon={<Hammer className="w-8 h-8" />}
           />
           <StatCard
             label="Active Bids"
-            value="7"
+            value={loading ? '...' : String(pendingBids.length)}
             icon={<Clock className="w-8 h-8" />}
-            trend={{ value: 3, isPositive: true }}
           />
           <StatCard
             label="Won Jobs"
-            value="8"
+            value={loading ? '...' : String(acceptedBids.length)}
             icon={<CheckCircle className="w-8 h-8" />}
           />
           <StatCard
-            label="Earnings This Month"
-            value="$18,400"
+            label="Total Earnings"
+            value={loading ? '...' : formatPrice(totalEarnings)}
             icon={<DollarSign className="w-8 h-8" />}
-            trend={{ value: 12, isPositive: true }}
           />
         </div>
 
-        {/* Tabs */}
         <Tabs tabs={tabs} />
       </div>
     </DashboardLayout>

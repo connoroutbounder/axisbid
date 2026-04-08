@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth'
 
 const UpdateJobSchema = z.object({
   title: z.string().optional(),
-  status: z.string().optional(),
+  status: z.enum(['PENDING', 'BIDDING', 'AWARDED', 'IN_PRODUCTION', 'SHIPPED', 'DELIVERED', 'COMPLETED', 'CANCELLED']).optional(),
   notes: z.string().optional(),
   neededBy: z.string().datetime().optional(),
   trackingNumber: z.string().optional(),
@@ -32,9 +32,11 @@ export async function GET(
                 completedJobs: true,
                 isVerified: true,
                 certifications: true,
+                machines: { select: { name: true } },
               },
             },
           },
+          orderBy: { createdAt: 'desc' },
         },
         review: true,
       },
@@ -44,11 +46,17 @@ export async function GET(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 })
     }
 
-    // Check authorization
-    if (job.userId !== session?.user?.id && session?.user?.role !== 'ADMIN') {
-      // Allow shop owners to see their own bids
-      const shopBid = job.bids.find((bid: any) => bid.shopId === (session?.user as any)?.shopId)
-      if (!shopBid) {
+    // Allow job owner, admins, and shop owners browsing open jobs
+    const isOwner = job.userId === session?.user?.id
+    const isAdmin = session?.user?.role === 'ADMIN'
+    const isShopOwner = session?.user?.role === 'SHOP_OWNER'
+    const isOpenJob = ['PENDING', 'BIDDING'].includes(job.status)
+
+    if (!isOwner && !isAdmin && !(isShopOwner && isOpenJob)) {
+      // Also allow shop owners who already bid on this job
+      const shop = isShopOwner ? await prisma.shop.findUnique({ where: { userId: session!.user.id } }) : null
+      const hasBid = shop ? job.bids.some((bid: any) => bid.shopId === shop.id) : false
+      if (!hasBid) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
       }
     }

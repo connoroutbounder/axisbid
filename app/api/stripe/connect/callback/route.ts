@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.redirect(new URL('/auth/signin', request.url))
+      return NextResponse.redirect(new URL('/login', request.url))
     }
 
     const shop = await prisma.shop.findUnique({
@@ -27,12 +27,12 @@ export async function GET(request: NextRequest) {
 
     // Redirect to shop dashboard
     return NextResponse.redirect(
-      new URL('/shop/dashboard?stripeSuccess=true', request.url)
+      new URL('/shop?stripeSuccess=true', request.url)
     )
   } catch (error) {
     console.error('Stripe callback error:', error)
     return NextResponse.redirect(
-      new URL('/shop/dashboard?stripeError=true', request.url)
+      new URL('/shop?stripeError=true', request.url)
     )
   }
 }

@@ -1,215 +1,269 @@
+'use client'
+
+import { useEffect, useState, useCallback } from 'react'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { StatCard } from '@/components/ui/stat-card'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/utils'
-import { TrendingUp, Users, Briefcase, AlertCircle } from 'lucide-react'
+import {
+  TrendingUp,
+  Users,
+  Briefcase,
+  ShieldCheck,
+  Loader2,
+} from 'lucide-react'
 
-const mockJobs = [
-  {
-    id: '1',
-    customerName: 'Acme Manufacturing',
-    partName: 'Aluminum Bracket',
-    status: 'active',
-    bids: 5,
-    value: 3500,
-    createdAt: '2026-04-01',
-  },
-  {
-    id: '2',
-    customerName: 'TechCorp',
-    partName: 'Steel Component',
-    status: 'pending',
-    bids: 2,
-    value: 2100,
-    createdAt: '2026-03-30',
-  },
-  {
-    id: '3',
-    customerName: 'Precision Inc',
-    partName: 'Titanium Part',
-    status: 'completed',
-    bids: 7,
-    value: 8900,
-    createdAt: '2026-03-20',
-  },
-]
+interface Stats {
+  totalJobs: number
+  activeJobs: number
+  totalShops: number
+  verifiedShops: number
+  totalRevenue: number
+  totalGMV: number
+}
 
-const pendingShops = [
-  {
-    id: '1',
-    name: 'Summit CNC Works',
-    submittedAt: '2026-04-03',
-    machines: 8,
-    employees: 15,
-  },
-  {
-    id: '2',
-    name: 'Precision Machining',
-    submittedAt: '2026-04-01',
-    machines: 5,
-    employees: 8,
-  },
-]
+interface Shop {
+  id: string
+  name: string
+  isVerified: boolean
+  isActive: boolean
+  rating: number
+  employeeCount: number | null
+  machines: { id: string }[]
+  createdAt: string
+}
 
 export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [shops, setShops] = useState<Shop[]>([])
+  const [loadingStats, setLoadingStats] = useState(true)
+  const [loadingShops, setLoadingShops] = useState(true)
+  const [verifyingId, setVerifyingId] = useState<string | null>(null)
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/stats')
+      if (res.ok) {
+        setStats(await res.json())
+      }
+    } catch (error) {
+      console.error('Failed to fetch stats:', error)
+    } finally {
+      setLoadingStats(false)
+    }
+  }, [])
+
+  const fetchShops = useCallback(async () => {
+    try {
+      const res = await fetch('/api/shops')
+      if (res.ok) {
+        setShops(await res.json())
+      }
+    } catch (error) {
+      console.error('Failed to fetch shops:', error)
+    } finally {
+      setLoadingShops(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchStats()
+    fetchShops()
+  }, [fetchStats, fetchShops])
+
+  async function handleVerify(shopId: string, action: 'approve' | 'reject') {
+    setVerifyingId(shopId)
+    try {
+      const res = await fetch('/api/admin/shops/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopId, action }),
+      })
+
+      if (res.ok) {
+        await Promise.all([fetchStats(), fetchShops()])
+      }
+    } catch (error) {
+      console.error('Failed to verify shop:', error)
+    } finally {
+      setVerifyingId(null)
+    }
+  }
+
   return (
     <DashboardLayout userRole="admin">
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Platform Dashboard</h1>
-          <p className="text-gray-600 mt-1">Monitor platform activity and metrics</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Platform Dashboard
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Monitor platform activity and metrics
+          </p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <StatCard
-            label="Total GMV"
-            value="$487,200"
-            icon={<TrendingUp className="w-8 h-8" />}
-            trend={{ value: 23, isPositive: true }}
-          />
-          <StatCard
-            label="Revenue (20%)"
-            value="$97,440"
-            icon={<TrendingUp className="w-8 h-8" />}
-            trend={{ value: 23, isPositive: true }}
-          />
-          <StatCard
-            label="Active Jobs"
-            value="34"
-            icon={<Briefcase className="w-8 h-8" />}
-            trend={{ value: 8, isPositive: true }}
-          />
-          <StatCard
-            label="Registered Shops"
-            value="287"
-            icon={<Users className="w-8 h-8" />}
-            trend={{ value: 12, isPositive: true }}
-          />
+          {loadingStats ? (
+            <div className="col-span-4 flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            </div>
+          ) : stats ? (
+            <>
+              <StatCard
+                label="Total Jobs"
+                value={String(stats.totalJobs)}
+                icon={<Briefcase className="w-8 h-8" />}
+              />
+              <StatCard
+                label="Active Jobs"
+                value={String(stats.activeJobs)}
+                icon={<Briefcase className="w-8 h-8" />}
+              />
+              <StatCard
+                label="Total Shops"
+                value={`${stats.verifiedShops} / ${stats.totalShops}`}
+                icon={<Users className="w-8 h-8" />}
+              />
+              <StatCard
+                label="Revenue (20%)"
+                value={formatPrice(stats.totalRevenue)}
+                icon={<TrendingUp className="w-8 h-8" />}
+              />
+            </>
+          ) : null}
         </div>
 
-        {/* Recent Jobs */}
-        <Card>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-gray-900">Recent Jobs</h2>
-            <Button variant="ghost" size="sm">
-              View All
-            </Button>
+        {/* GMV stat if available */}
+        {stats && stats.totalGMV > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <StatCard
+              label="Total GMV"
+              value={formatPrice(stats.totalGMV)}
+              icon={<TrendingUp className="w-8 h-8" />}
+            />
           </div>
+        )}
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Customer
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Part Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Bids
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Est. Value
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockJobs.map((job) => (
-                  <tr key={job.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-gray-900">{job.customerName}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-gray-900">{job.partName}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge
-                        variant={
-                          job.status === 'active'
-                            ? 'active'
-                            : job.status === 'pending'
-                              ? 'pending'
-                              : 'completed'
-                        }
-                      >
-                        {job.status.charAt(0).toUpperCase() +
-                          job.status.slice(1)}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-brand-blue bg-opacity-10 text-brand-blue font-semibold">
-                        {job.bids}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="font-semibold text-gray-900">
-                        {formatPrice(job.value)}
-                      </p>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-
-        {/* Shop Verification Queue */}
+        {/* Shops Table */}
         <Card
           header={
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-brand-orange" />
-                <h2 className="text-lg font-bold text-gray-900">
-                  Shop Verification Queue
-                </h2>
-                <Badge variant="warning">{pendingShops.length} pending</Badge>
-              </div>
-              <Button variant="ghost" size="sm">
-                View All
-              </Button>
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-brand-blue" />
+              <h2 className="text-lg font-bold text-gray-900">
+                Shop Management
+              </h2>
             </div>
           }
         >
-          <div className="space-y-4">
-            {pendingShops.map((shop) => (
-              <div
-                key={shop.id}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
-              >
-                <div>
-                  <p className="font-semibold text-gray-900">{shop.name}</p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {shop.machines} machines • {shop.employees} employees
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Submitted {new Date(shop.submittedAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="danger"
-                    size="sm"
-                  >
-                    Reject
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                  >
-                    Approve
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+          {loadingShops ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            </div>
+          ) : shops.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">No shops found</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                      Shop Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                      Rating
+                    </th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                      Machines
+                    </th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                      Employees
+                    </th>
+                    <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shops.map((shop) => (
+                    <tr
+                      key={shop.id}
+                      className="border-b border-gray-200 hover:bg-gray-50"
+                    >
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-gray-900">{shop.name}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        {shop.isVerified ? (
+                          <Badge variant="success">Verified</Badge>
+                        ) : shop.isActive ? (
+                          <Badge variant="pending">Pending</Badge>
+                        ) : (
+                          <Badge variant="rejected">Rejected</Badge>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-900">
+                          {shop.rating > 0 ? shop.rating.toFixed(1) : '--'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-900">
+                          {shop.machines?.length ?? 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-900">
+                          {shop.employeeCount ?? '--'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-end gap-2">
+                          {!shop.isVerified && shop.isActive && (
+                            <>
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                disabled={verifyingId === shop.id}
+                                onClick={() => handleVerify(shop.id, 'reject')}
+                              >
+                                Reject
+                              </Button>
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                disabled={verifyingId === shop.id}
+                                isLoading={verifyingId === shop.id}
+                                onClick={() => handleVerify(shop.id, 'approve')}
+                              >
+                                Approve
+                              </Button>
+                            </>
+                          )}
+                          {shop.isVerified && (
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              disabled={verifyingId === shop.id}
+                              onClick={() => handleVerify(shop.id, 'reject')}
+                            >
+                              Revoke
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Card>
       </div>
     </DashboardLayout>

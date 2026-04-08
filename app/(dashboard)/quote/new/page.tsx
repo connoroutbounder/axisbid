@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -15,10 +17,18 @@ const steps = [
   { label: 'Review', value: 'review' },
 ]
 
+const toleranceMap: Record<string, string> = {
+  standard: '±0.005"',
+  precision: '±0.0005"',
+  ultra: '±0.0001"',
+}
+
 export default function NewQuotePage() {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [partSpecs, setPartSpecs] = useState<PartSpecs | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file)
@@ -31,8 +41,56 @@ export default function NewQuotePage() {
 
   const handleSubmitQuote = async () => {
     if (!selectedFile || !partSpecs) return
-    // API call will be made here
-    console.log('Submitting quote with file and specs')
+    setIsSubmitting(true)
+
+    try {
+      // Step 1: Upload file to S3
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json()
+        throw new Error(err.error || 'File upload failed')
+      }
+
+      const uploadData = await uploadRes.json()
+
+      // Step 2: Create job
+      const jobRes = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: selectedFile.name.replace(/\.(step|stp)$/i, ''),
+          material: partSpecs.material,
+          surfaceFinish: partSpecs.surfaceFinish,
+          tolerance: toleranceMap[partSpecs.tolerance] || partSpecs.tolerance,
+          quantity: partSpecs.quantity,
+          neededBy: partSpecs.neededByDate ? new Date(partSpecs.neededByDate).toISOString() : undefined,
+          notes: partSpecs.notes || undefined,
+          fileName: uploadData.file.name,
+          fileUrl: uploadData.file.url,
+          fileSize: uploadData.file.size,
+        }),
+      })
+
+      if (!jobRes.ok) {
+        const err = await jobRes.json()
+        throw new Error(err.error || 'Failed to create job')
+      }
+
+      const job = await jobRes.json()
+      toast.success('Quote request submitted! Shops will start bidding soon.')
+      router.push(`/jobs/${job.id}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Something went wrong')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -81,15 +139,12 @@ export default function NewQuotePage() {
           <div className="space-y-6">
             <PartSpecsForm onSubmit={handleSpecsSubmit} />
 
-            <div className="flex justify-between gap-3">
+            <div className="flex justify-start">
               <Button
                 variant="outline"
                 onClick={() => setCurrentStep(0)}
               >
                 Back
-              </Button>
-              <Button variant="primary" disabled>
-                Next
               </Button>
             </div>
           </div>
@@ -155,7 +210,7 @@ export default function NewQuotePage() {
                   <div>
                     <p className="font-semibold text-brand-blue mb-1">What happens next?</p>
                     <p className="text-sm text-gray-700">
-                      Once you submit, our AI will analyze your file and provide an estimate. Qualified machine shops will then bid on your project.
+                      Once you submit, your job will be posted to our network of vetted machine shops. Expect competitive bids within 24 hours.
                     </p>
                   </div>
                 </div>
@@ -173,6 +228,8 @@ export default function NewQuotePage() {
                 variant="primary"
                 size="lg"
                 onClick={handleSubmitQuote}
+                isLoading={isSubmitting}
+                disabled={isSubmitting}
               >
                 Submit Quote Request
               </Button>

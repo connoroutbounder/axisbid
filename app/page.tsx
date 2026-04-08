@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import {
   Upload,
-  Zap,
+  Clock,
   Users,
   TrendingUp,
   CheckCircle,
@@ -20,15 +20,15 @@ export default function Home() {
       <section className="bg-gradient-to-br from-brand-navy to-brand-dark text-white py-20">
         <div className="container text-center">
           <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-            Get Competitive CNC Bids in Hours, Not Days
+            Get 5 Bids in 24 Hours
           </h1>
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Upload your STEP file. Get an AI estimate in seconds. Receive bids
-            from vetted local shops within hours.
+            Upload your STEP file. Vetted local machine shops compete for your
+            job. Compare bids and pick the best fit.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/dashboard/quote/new">
+            <Link href="/quote/new">
               <Button variant="primary" size="lg">
                 Upload Your Part
               </Button>
@@ -62,11 +62,11 @@ export default function Home() {
             {/* Step 2 */}
             <div className="text-center">
               <div className="w-16 h-16 bg-brand-orange rounded-full flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-8 h-8 text-white" />
+                <Clock className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold mb-2">AI Estimate</h3>
+              <h3 className="text-xl font-bold mb-2">Shops Compete</h3>
               <p className="text-gray-600">
-                Get an instant price estimate powered by machine learning
+                Vetted machine shops review your part and submit competitive bids within 24 hours
               </p>
             </div>
 
@@ -75,9 +75,9 @@ export default function Home() {
               <div className="w-16 h-16 bg-brand-green rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Shop Bids</h3>
+              <h3 className="text-xl font-bold mb-2">Compare &amp; Choose</h3>
               <p className="text-gray-600">
-                Receive detailed bids from verified machine shops in your area
+                Review bids side-by-side, see shop ratings, and pick the best fit for your project
               </p>
             </div>
           </div>
@@ -101,7 +101,7 @@ export default function Home() {
                   Better Economics
                 </h3>
                 <p className="text-gray-600">
-                  20% take rate vs Xometry's 50%. More money stays in your
+                  20% take rate vs Xometry&apos;s 50%. More money stays in your
                   pocket.
                 </p>
               </div>
@@ -118,7 +118,7 @@ export default function Home() {
                   Transparent Process
                 </h3>
                 <p className="text-gray-600">
-                  See who's making your part. Direct communication with shops.
+                  See who&apos;s making your part. Direct communication with shops.
                 </p>
               </div>
             </div>
@@ -126,15 +126,15 @@ export default function Home() {
             <div className="flex gap-4">
               <div className="flex-shrink-0">
                 <div className="w-12 h-12 rounded-lg bg-brand-green bg-opacity-10 flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-brand-green" />
+                  <Clock className="w-6 h-6 text-brand-green" />
                 </div>
               </div>
               <div>
                 <h3 className="text-lg font-bold mb-2">
-                  Instant AI Estimates
+                  5 Bids in 24 Hours
                 </h3>
                 <p className="text-gray-600">
-                  Get price estimates in seconds, not waiting for emails.
+                  No more waiting days for a single quote. Get multiple competitive bids fast.
                 </p>
               </div>
             </div>
@@ -175,8 +175,8 @@ export default function Home() {
               <p className="text-gray-300 mt-1">Jobs Completed</p>
             </div>
             <div>
-              <p className="text-4xl font-bold">&lt;4hr</p>
-              <p className="text-gray-300 mt-1">Avg Bid Time</p>
+              <p className="text-4xl font-bold">5+</p>
+              <p className="text-gray-300 mt-1">Bids Per Job</p>
             </div>
           </div>
         </div>
@@ -222,7 +222,7 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/dashboard/quote/new">
+            <Link href="/quote/new">
               <Button
                 variant="primary"
                 size="lg"

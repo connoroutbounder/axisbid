@@ -1,12 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Stepper } from '@/components/ui/stepper'
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
 import { AlertCircle } from 'lucide-react'
 
 const steps = [
@@ -85,9 +88,79 @@ export default function ShopRegisterPage() {
     setMachines(machines.filter((_, i) => i !== idx))
   }
 
-  const handleSubmit = () => {
-    // API call will be made here
-    console.log({ shopInfo, machines, certs })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter()
+
+  const certLabelMap: Record<string, string> = {
+    iso9001: 'ISO 9001',
+    as9100: 'AS9100',
+    iso13485: 'ISO 13485',
+    itar: 'ITAR',
+    nadcap: 'NADCAP',
+  }
+
+  const machineTypeMap: Record<string, string> = {
+    'cnc-mill': 'CNC_MILL',
+    'cnc-lathe': 'CNC_LATHE',
+    'edm': 'EDM_WIRE',
+    'waterjet': 'OTHER',
+    'plasma': 'OTHER',
+  }
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true)
+    try {
+      const certifications = Object.entries(certs)
+        .filter(([, v]) => v)
+        .map(([k]) => certLabelMap[k])
+
+      // Create shop
+      const shopRes = await fetch('/api/shops', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: shopInfo.name,
+          address: shopInfo.address,
+          city: shopInfo.city,
+          state: shopInfo.state,
+          zipCode: shopInfo.zip,
+          yearsInBusiness: shopInfo.yearsInBusiness,
+          employeeCount: shopInfo.employees,
+          certifications,
+        }),
+      })
+
+      if (!shopRes.ok) {
+        const err = await shopRes.json()
+        throw new Error(typeof err.error === 'string' ? err.error : 'Failed to create shop')
+      }
+
+      const shop = await shopRes.json()
+
+      // Add machines
+      for (const machine of machines) {
+        await fetch(`/api/shops/${shop.id}/machines`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: `${machine.brand} ${machine.model}`,
+            type: machineTypeMap[machine.type] || 'OTHER',
+            axes: machine.axes,
+            brand: machine.brand,
+            model: machine.model,
+            maxTravel: machine.maxTravel || undefined,
+          }),
+        })
+      }
+
+      toast.success('Shop registered successfully!')
+      router.push('/shop')
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Something went wrong')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -119,13 +192,20 @@ export default function ShopRegisterPage() {
                 required
               />
 
-              <Input
-                label="Street Address *"
+              <AddressAutocomplete
                 value={shopInfo.address}
-                onChange={(e) =>
-                  setShopInfo({ ...shopInfo, address: e.target.value })
+                onChange={(address) =>
+                  setShopInfo({ ...shopInfo, address })
                 }
-                required
+                onSelect={(result) =>
+                  setShopInfo({
+                    ...shopInfo,
+                    address: result.street,
+                    city: result.city,
+                    state: result.state,
+                    zip: result.zip,
+                  })
+                }
               />
 
               <div className="grid grid-cols-2 gap-4">
@@ -317,13 +397,23 @@ export default function ShopRegisterPage() {
               >
                 Back
               </Button>
-              <Button
-                variant="primary"
-                onClick={() => setCurrentStep(2)}
-                disabled={machines.length === 0}
-              >
-                Next
-              </Button>
+              <div className="flex items-center gap-3">
+                {machines.length === 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentStep(2)}
+                  >
+                    Skip
+                  </Button>
+                )}
+                <Button
+                  variant="primary"
+                  onClick={() => setCurrentStep(2)}
+                  disabled={machines.length === 0}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           </Card>
         )}
@@ -373,7 +463,7 @@ export default function ShopRegisterPage() {
             <div className="p-4 bg-brand-blue bg-opacity-10 rounded-lg flex gap-3">
               <AlertCircle className="w-5 h-5 text-brand-blue flex-shrink-0 mt-0.5" />
               <p className="text-sm text-gray-700">
-                You'll also need to connect your Stripe account to receive payments. This will be set up in the next step.
+                You&apos;ll also need to connect your Stripe account to receive payments. This will be set up in the next step.
               </p>
             </div>
 
@@ -387,6 +477,8 @@ export default function ShopRegisterPage() {
               <Button
                 variant="primary"
                 onClick={handleSubmit}
+                isLoading={isSubmitting}
+                disabled={isSubmitting}
               >
                 Complete Setup
               </Button>

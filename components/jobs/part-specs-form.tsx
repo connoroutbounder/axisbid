@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 interface PartSpecsFormProps {
   onSubmit: (specs: PartSpecs) => void
@@ -153,9 +154,9 @@ export function PartSpecsForm({ onSubmit }: PartSpecsFormProps) {
               })
             }
           >
-            <option value="standard">Standard (±0.005")</option>
-            <option value="precision">Precision (±0.0005")</option>
-            <option value="ultra">Ultra Precision (±0.0001")</option>
+            <option value="standard">Standard (±0.005&quot;)</option>
+            <option value="precision">Precision (±0.0005&quot;)</option>
+            <option value="ultra">Ultra Precision (±0.0001&quot;)</option>
           </Select>
 
           {/* Quantity */}
@@ -205,6 +206,12 @@ export function PartSpecsForm({ onSubmit }: PartSpecsFormProps) {
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-brand-blue focus:ring-2 focus:ring-brand-blue focus:ring-opacity-20 focus:outline-none"
             rows={4}
           />
+        </div>
+
+        <div className="pt-4">
+          <Button type="submit" variant="primary" className="w-full">
+            Continue to Review
+          </Button>
         </div>
       </Card>
     </form>

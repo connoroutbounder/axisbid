@@ -1,12 +1,20 @@
 import { Resend } from 'resend'
 import { prisma } from './prisma'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 const FROM_EMAIL = 'noreply@axisbid.com'
 const SUPPORT_EMAIL = 'support@axisbid.com'
 
+function getResend() {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not set — skipping email')
+    return null
+  }
+  return new Resend(process.env.RESEND_API_KEY)
+}
+
 export async function sendWelcomeEmail(email: string, name: string): Promise<void> {
+  const resend = getResend()
+  if (!resend) return
   await resend.emails.send({
     from: FROM_EMAIL,
     to: email,
@@ -45,6 +53,8 @@ export async function sendNewBidNotification(
 
   if (!job) return
 
+  const resend = getResend()
+  if (!resend) return
   await resend.emails.send({
     from: FROM_EMAIL,
     to: customerEmail,
@@ -78,6 +88,8 @@ export async function sendBidAcceptedNotification(
 
   if (!job) return
 
+  const resend = getResend()
+  if (!resend) return
   await resend.emails.send({
     from: FROM_EMAIL,
     to: shopEmail,
@@ -131,6 +143,8 @@ export async function sendJobStatusUpdate(
     COMPLETED: 'Job completed and closed.',
   }
 
+  const resend = getResend()
+  if (!resend) return
   await resend.emails.send({
     from: FROM_EMAIL,
     to: customerEmail,
@@ -163,6 +177,8 @@ export async function sendPaymentConfirmation(
 
   if (!job) return
 
+  const resend = getResend()
+  if (!resend) return
   await resend.emails.send({
     from: FROM_EMAIL,
     to: customerEmail,
@@ -195,6 +211,8 @@ export async function sendReviewRequest(
 
   if (!job) return
 
+  const resend = getResend()
+  if (!resend) return
   await resend.emails.send({
     from: FROM_EMAIL,
     to: customerEmail,
@@ -217,6 +235,8 @@ export async function sendReviewRequest(
 }
 
 export async function sendShopWelcomeEmail(email: string, name: string): Promise<void> {
+  const resend = getResend()
+  if (!resend) return
   await resend.emails.send({
     from: FROM_EMAIL,
     to: email,

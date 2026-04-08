@@ -49,12 +49,6 @@ export function BidCard({
                   <CheckCircle className="w-5 h-5 text-brand-green" />
                 )}
               </div>
-              <div className="flex items-center gap-3 mt-2">
-                <StarRating rating={rating} showText size="sm" />
-                <span className="text-sm text-gray-600">
-                  ({reviewCount} reviews)
-                </span>
-              </div>
             </div>
           </div>
 
@@ -91,7 +85,7 @@ export function BidCard({
           {/* Approach/Notes */}
           <div className="bg-gray-50 rounded p-3 mb-4">
             <p className="text-xs font-medium text-gray-600 mb-1 uppercase">
-              Shop's Approach
+              Shop&apos;s Approach
             </p>
             <p className="text-sm text-gray-900">{approach}</p>
           </div>

@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes - always allow
-  const publicRoutes = ['/auth', '/api/auth', '/api/upload/presigned']
+  const publicRoutes = ['/login', '/register', '/auth', '/api/auth', '/api/upload/presigned', '/api/payments/webhook']
 
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route))
 
@@ -19,11 +19,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protected routes - require authentication
-  const protectedRoutes = ['/dashboard', '/shop', '/profile']
+  const protectedRoutes = ['/dashboard', '/shop', '/profile', '/quote', '/jobs', '/admin']
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
 
   if (isProtectedRoute && !token) {
-    return NextResponse.redirect(new URL('/auth/signin', request.url))
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // Shop-only routes
@@ -56,6 +56,9 @@ export const config = {
     '/dashboard/:path*',
     '/shop/:path*',
     '/profile/:path*',
+    '/quote/:path*',
+    '/jobs/:path*',
+    '/admin/:path*',
     '/api/jobs/:path*',
     '/api/shops/:path*',
     '/api/bids/:path*',

@@ -44,6 +44,11 @@ export async function GET(request: NextRequest) {
 
     if (filters.userId) {
       where.userId = filters.userId
+    } else if (session?.user?.role === 'SHOP_OWNER') {
+      // Shop owners see all open jobs by default
+      if (!filters.status) {
+        where.status = { in: ['PENDING', 'BIDDING'] }
+      }
     } else if (session?.user?.id) {
       where.userId = session.user.id
     }
@@ -115,7 +120,7 @@ export async function POST(request: NextRequest) {
         fileName: data.fileName,
         fileUrl: data.fileUrl,
         fileSize: data.fileSize,
-        status: 'PENDING',
+        status: 'BIDDING',
       },
     })
 

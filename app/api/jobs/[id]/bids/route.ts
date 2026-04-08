@@ -81,7 +81,7 @@ export async function POST(
     }
 
     // Check if job is open for bidding
-    if (!['QUOTING', 'BIDDING'].includes(job.status)) {
+    if (!['PENDING', 'BIDDING'].includes(job.status)) {
       return NextResponse.json(
         { error: 'This job is not accepting bids' },
         { status: 400 }
@@ -131,8 +131,8 @@ export async function POST(
       },
     })
 
-    // Update job status if needed
-    if (job.status === 'QUOTING') {
+    // Update job status to BIDDING if it was PENDING
+    if (job.status === 'PENDING') {
       await prisma.job.update({
         where: { id: params.id },
         data: { status: 'BIDDING' },

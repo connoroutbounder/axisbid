@@ -7,6 +7,7 @@ import { StarRating } from '@/components/ui/star-rating'
 import { MachineList } from '@/components/shops/machine-list'
 import { CertificationBadges } from '@/components/shops/certification-badges'
 import { CheckCircle, MapPin, Award } from 'lucide-react'
+import Link from 'next/link'
 
 const mockShop = {
   id: '1',
@@ -132,9 +133,11 @@ export default function ShopProfilePage({
                   </div>
                 </div>
 
-                <Button variant="primary" size="lg" className="w-full mt-4">
-                  Request a Quote
-                </Button>
+                <Link href="/quote/new">
+                  <Button variant="primary" size="lg" className="w-full mt-4">
+                    Request a Quote
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

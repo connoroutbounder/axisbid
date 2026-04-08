@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,15 +10,35 @@ import Link from 'next/link'
 import { Mail, Lock } from 'lucide-react'
 
 export default function LoginPage() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    // API call will be made here
-    setTimeout(() => setIsLoading(false), 1000)
+    setError('')
+
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        setError(result.error)
+      } else {
+        router.push('/dashboard')
+        router.refresh()
+      }
+    } catch {
+      setError('An unexpected error occurred')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -29,6 +51,12 @@ export default function LoginPage() {
       </div>
 
       <Card>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
             label="Email Address"
@@ -51,12 +79,9 @@ export default function LoginPage() {
           />
 
           <div className="text-right">
-            <Link
-              href="/forgot-password"
-              className="text-sm text-brand-blue hover:text-brand-navy"
-            >
+            <span className="text-sm text-gray-400 cursor-not-allowed">
               Forgot password?
-            </Link>
+            </span>
           </div>
 
           <Button
@@ -84,14 +109,14 @@ export default function LoginPage() {
           variant="outline"
           size="lg"
           className="w-full"
+          onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
         >
-          {/* Google Icon would go here */}
           Continue with Google
         </Button>
       </Card>
 
       <div className="text-center text-sm text-gray-600">
-        Don't have an account?{' '}
+        Don&apos;t have an account?{' '}
         <Link href="/register" className="text-brand-blue font-semibold hover:text-brand-navy">
           Sign up
         </Link>

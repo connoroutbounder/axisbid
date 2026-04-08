@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
-import { generatePresignedUploadUrl } from '@/lib/s3'
+import { getDownloadUrl } from '@/lib/supabase'
 
 const PresignedUrlSchema = z.object({
   fileName: z.string(),
@@ -30,10 +30,12 @@ export async function GET(request: NextRequest) {
       contentType,
     })
 
-    const presignedUrl = await generatePresignedUploadUrl(data.fileName, data.contentType)
+    // Supabase uses direct uploads, not presigned URLs
+    // This endpoint returns a signed download URL instead
+    const signedUrl = await getDownloadUrl(data.fileName)
 
     return NextResponse.json({
-      presignedUrl,
+      presignedUrl: signedUrl,
       fileName: data.fileName,
     })
   } catch (error) {

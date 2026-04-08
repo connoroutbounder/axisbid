@@ -1,5 +1,6 @@
 'use client'
 
+import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
@@ -21,21 +22,21 @@ export function Sidebar({ userRole }: SidebarProps) {
 
   const customerLinks = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'My Jobs', href: '/dashboard/jobs', icon: FileText },
-    { label: 'Get Quote', href: '/dashboard/quote/new', icon: Hammer },
+    { label: 'My Jobs', href: '/jobs', icon: FileText },
+    { label: 'Get Quote', href: '/quote/new', icon: Hammer },
   ]
 
   const shopLinks = [
-    { label: 'Dashboard', href: '/dashboard/shop', icon: LayoutDashboard },
-    { label: 'Available Jobs', href: '/dashboard/shop?tab=available', icon: Hammer },
-    { label: 'My Bids', href: '/dashboard/shop?tab=bids', icon: FileText },
-    { label: 'Active Jobs', href: '/dashboard/shop?tab=active', icon: LayoutDashboard },
+    { label: 'Dashboard', href: '/shop', icon: LayoutDashboard },
+    { label: 'Available Jobs', href: '/shop?tab=available', icon: Hammer },
+    { label: 'My Bids', href: '/shop?tab=bids', icon: FileText },
+    { label: 'Active Jobs', href: '/shop?tab=active', icon: LayoutDashboard },
   ]
 
   const adminLinks = [
-    { label: 'Dashboard', href: '/dashboard/admin', icon: LayoutDashboard },
-    { label: 'Shops', href: '/dashboard/admin/shops', icon: Hammer },
-    { label: 'Jobs', href: '/dashboard/admin/jobs', icon: FileText },
+    { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { label: 'Shops', href: '/admin', icon: Hammer },
+    { label: 'Jobs', href: '/admin', icon: FileText },
   ]
 
   const links =
@@ -111,6 +112,7 @@ export function Sidebar({ userRole }: SidebarProps) {
             collapsed && 'justify-center'
           )}
           title={collapsed ? 'Logout' : undefined}
+          onClick={() => signOut({ callbackUrl: '/login' })}
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />
           {!collapsed && <span>Logout</span>}

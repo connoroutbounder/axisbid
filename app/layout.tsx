@@ -1,5 +1,6 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
+import { AuthSessionProvider } from '@/components/providers/session-provider'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -16,8 +17,12 @@ export const metadata: Metadata = {
     'machine shop',
   ],
   authors: [{ name: 'AxisBid' }],
-  viewport: 'width=device-width, initial-scale=1',
   icons: { icon: '/favicon.ico' },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({
@@ -36,8 +41,10 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-brand-light">
-        {children}
-        <Toaster position="top-right" />
+        <AuthSessionProvider>
+          {children}
+          <Toaster position="top-right" />
+        </AuthSessionProvider>
       </body>
     </html>
   )
