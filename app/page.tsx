@@ -23,8 +23,8 @@ export default function Home() {
             Get 5 Bids in 24 Hours
           </h1>
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Upload your STEP file. Vetted local machine shops compete for your
-            job. Compare bids and pick the best fit.
+            Upload your drawings. Vetted local CNC shops compete for your
+            job. Compare bids and pick the best price and lead time.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -218,7 +218,7 @@ export default function Home() {
         <div className="container text-center">
           <h2 className="text-4xl font-bold mb-4">Ready to Get Started?</h2>
           <p className="text-xl text-gray-200 mb-8">
-            Upload your STEP file and get bids from local machine shops today.
+            Upload your drawing and get competitive bids from local CNC shops today.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
