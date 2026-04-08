@@ -12,9 +12,14 @@ const CreateJobSchema = z.object({
   quantity: z.number().int().positive(),
   neededBy: z.string().datetime().optional(),
   notes: z.string().optional(),
-  fileName: z.string(),
-  fileUrl: z.string().url(),
-  fileSize: z.number().positive(),
+  // Drawing (PDF) - required
+  drawingFileName: z.string(),
+  drawingFileUrl: z.string().url(),
+  drawingFileSize: z.number().positive(),
+  // STEP file - optional
+  fileName: z.string().optional(),
+  fileUrl: z.string().url().optional(),
+  fileSize: z.number().positive().optional(),
 })
 
 const JobFilterSchema = z.object({
@@ -117,6 +122,9 @@ export async function POST(request: NextRequest) {
         quantity: data.quantity,
         neededBy: data.neededBy ? new Date(data.neededBy) : undefined,
         notes: data.notes,
+        drawingFileName: data.drawingFileName,
+        drawingFileUrl: data.drawingFileUrl,
+        drawingFileSize: data.drawingFileSize,
         fileName: data.fileName,
         fileUrl: data.fileUrl,
         fileSize: data.fileSize,

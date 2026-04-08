@@ -154,10 +154,15 @@ model Job {
   neededBy        DateTime?
   notes           String?   @db.Text
 
-  // File
-  fileName        String
-  fileUrl         String
-  fileSize        Int
+  // Drawing (PDF) - primary file for quoting
+  drawingFileName String?
+  drawingFileUrl  String?
+  drawingFileSize Int?
+
+  // STEP/CAD file - optional, for CNC programming
+  fileName        String?
+  fileUrl         String?
+  fileSize        Int?
 
   // Parsed geometry
   boundingBox     Json?

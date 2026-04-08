@@ -9,10 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Stepper } from '@/components/ui/stepper'
 import { FileUpload } from '@/components/jobs/file-upload'
 import { PartSpecsForm, type PartSpecs } from '@/components/jobs/part-specs-form'
-import { AlertCircle, CheckCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle, FileText, FileBox } from 'lucide-react'
 
 const steps = [
-  { label: 'Upload File', value: 'upload' },
+  { label: 'Upload Files', value: 'upload' },
   { label: 'Part Details', value: 'details' },
   { label: 'Review', value: 'review' },
 ]
@@ -26,13 +26,10 @@ const toleranceMap: Record<string, string> = {
 export default function NewQuotePage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [selectedDrawing, setSelectedDrawing] = useState<File | null>(null)
+  const [selectedStepFile, setSelectedStepFile] = useState<File | null>(null)
   const [partSpecs, setPartSpecs] = useState<PartSpecs | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const handleFileSelect = (file: File) => {
-    setSelectedFile(file)
-  }
 
   const handleSpecsSubmit = (specs: PartSpecs) => {
     setPartSpecs(specs)
@@ -40,41 +37,64 @@ export default function NewQuotePage() {
   }
 
   const handleSubmitQuote = async () => {
-    if (!selectedFile || !partSpecs) return
+    if (!selectedDrawing || !partSpecs) return
     setIsSubmitting(true)
 
     try {
-      // Step 1: Upload file to S3
-      const formData = new FormData()
-      formData.append('file', selectedFile)
+      // Upload drawing (PDF) - required
+      const drawingFormData = new FormData()
+      drawingFormData.append('file', selectedDrawing)
+      drawingFormData.append('type', 'drawing')
 
-      const uploadRes = await fetch('/api/upload', {
+      const drawingRes = await fetch('/api/upload', {
         method: 'POST',
-        body: formData,
+        body: drawingFormData,
       })
 
-      if (!uploadRes.ok) {
-        const err = await uploadRes.json()
-        throw new Error(err.error || 'File upload failed')
+      if (!drawingRes.ok) {
+        const err = await drawingRes.json()
+        throw new Error(err.error || 'Drawing upload failed')
       }
 
-      const uploadData = await uploadRes.json()
+      const drawingData = await drawingRes.json()
 
-      // Step 2: Create job
+      // Upload STEP file - optional
+      let stepData = null
+      if (selectedStepFile) {
+        const stepFormData = new FormData()
+        stepFormData.append('file', selectedStepFile)
+        stepFormData.append('type', 'step')
+
+        const stepRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: stepFormData,
+        })
+
+        if (stepRes.ok) {
+          stepData = await stepRes.json()
+        }
+      }
+
+      // Create job
       const jobRes = await fetch('/api/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: selectedFile.name.replace(/\.(step|stp)$/i, ''),
+          title: selectedDrawing.name.replace(/\.pdf$/i, ''),
           material: partSpecs.material,
           surfaceFinish: partSpecs.surfaceFinish,
           tolerance: toleranceMap[partSpecs.tolerance] || partSpecs.tolerance,
           quantity: partSpecs.quantity,
           neededBy: partSpecs.neededByDate ? new Date(partSpecs.neededByDate).toISOString() : undefined,
           notes: partSpecs.notes || undefined,
-          fileName: uploadData.file.name,
-          fileUrl: uploadData.file.url,
-          fileSize: uploadData.file.size,
+          drawingFileName: drawingData.file.name,
+          drawingFileUrl: drawingData.file.url,
+          drawingFileSize: drawingData.file.size,
+          ...(stepData ? {
+            fileName: stepData.file.name,
+            fileUrl: stepData.file.url,
+            fileSize: stepData.file.size,
+          } : {}),
         }),
       })
 
@@ -96,37 +116,44 @@ export default function NewQuotePage() {
   return (
     <DashboardLayout userRole="customer">
       <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Get a Quote</h1>
           <p className="text-gray-600 mt-2">
-            Upload your STEP file and let us find you the best manufacturing partners
+            Upload your drawing and let us find you the best manufacturing partners
           </p>
         </div>
 
-        {/* Stepper */}
         <Stepper steps={steps} currentStep={currentStep} onStepChange={setCurrentStep} />
 
         {/* Step 1: File Upload */}
         {currentStep === 0 && (
           <Card>
             <h2 className="text-xl font-semibold mb-6 text-gray-900">
-              Step 1: Upload Your CAD File
+              Step 1: Upload Your Files
             </h2>
 
-            <FileUpload onFileSelect={handleFileSelect} selectedFile={selectedFile} />
+            <div className="space-y-8">
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-1">Upload Drawing (PDF) *</h3>
+                <p className="text-sm text-gray-500 mb-3">This is what shops use to quote your part</p>
+                <FileUpload mode="drawing" onFileSelect={setSelectedDrawing} selectedFile={selectedDrawing} />
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-1">Upload STEP File (Optional)</h3>
+                <p className="text-sm text-gray-500 mb-3">Needed later for CNC programming</p>
+                <FileUpload mode="step" onFileSelect={setSelectedStepFile} selectedFile={selectedStepFile} />
+              </div>
+            </div>
 
             <div className="mt-8 flex justify-end gap-3">
-              <Button
-                variant="outline"
-                disabled
-              >
+              <Button variant="outline" disabled>
                 Back
               </Button>
               <Button
                 variant="primary"
                 onClick={() => setCurrentStep(1)}
-                disabled={!selectedFile}
+                disabled={!selectedDrawing}
               >
                 Next
               </Button>
@@ -140,10 +167,7 @@ export default function NewQuotePage() {
             <PartSpecsForm onSubmit={handleSpecsSubmit} />
 
             <div className="flex justify-start">
-              <Button
-                variant="outline"
-                onClick={() => setCurrentStep(0)}
-              >
+              <Button variant="outline" onClick={() => setCurrentStep(0)}>
                 Back
               </Button>
             </div>
@@ -151,23 +175,40 @@ export default function NewQuotePage() {
         )}
 
         {/* Step 3: Review */}
-        {currentStep === 2 && selectedFile && partSpecs && (
+        {currentStep === 2 && selectedDrawing && partSpecs && (
           <div className="space-y-6">
             <Card header={<h2 className="text-lg font-semibold">Review Your Quote Request</h2>}>
               <div className="space-y-6">
                 {/* File Summary */}
                 <div className="pb-6 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-900 mb-3">File Details</h3>
-                  <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="w-12 h-12 bg-brand-blue rounded-lg flex items-center justify-center">
-                      <CheckCircle className="w-6 h-6 text-white" />
+                  <h3 className="font-semibold text-gray-900 mb-3">Files</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="w-10 h-10 bg-brand-blue rounded-lg flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{selectedDrawing.name}</p>
+                        <p className="text-sm text-gray-600">
+                          PDF Drawing - {(selectedDrawing.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <CheckCircle className="w-5 h-5 text-brand-green ml-auto" />
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{selectedFile.name}</p>
-                      <p className="text-sm text-gray-600">
-                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
+                    {selectedStepFile && (
+                      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                        <div className="w-10 h-10 bg-gray-600 rounded-lg flex items-center justify-center">
+                          <FileBox className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{selectedStepFile.name}</p>
+                          <p className="text-sm text-gray-600">
+                            STEP File - {(selectedStepFile.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                        <CheckCircle className="w-5 h-5 text-brand-green ml-auto" />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -218,10 +259,7 @@ export default function NewQuotePage() {
             </Card>
 
             <div className="flex justify-between gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setCurrentStep(1)}
-              >
+              <Button variant="outline" onClick={() => setCurrentStep(1)}>
                 Back
               </Button>
               <Button

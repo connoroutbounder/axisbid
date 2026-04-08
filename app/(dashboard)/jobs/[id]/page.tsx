@@ -27,9 +27,12 @@ interface Job {
   quantity: number
   neededBy: string | null
   notes: string | null
-  fileName: string
-  fileUrl: string
-  fileSize: number
+  drawingFileName: string | null
+  drawingFileUrl: string | null
+  drawingFileSize: number | null
+  fileName: string | null
+  fileUrl: string | null
+  fileSize: number | null
   boundingBox: any
   volume: number | null
   surfaceArea: number | null
@@ -175,30 +178,60 @@ export default function JobDetailPage() {
       value: 'overview',
       content: (
         <div className="space-y-6">
-          {job.fileUrl && (
+          {(job.drawingFileUrl || job.fileUrl) && (
             <Card>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-brand-blue bg-opacity-10 rounded-lg flex items-center justify-center">
-                    <FileBox className="w-6 h-6 text-brand-blue" />
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">Files</h3>
+              <div className="space-y-3">
+                {job.drawingFileUrl && (
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-brand-blue rounded-lg flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{job.drawingFileName}</p>
+                        <p className="text-sm text-gray-500">
+                          PDF Drawing{job.drawingFileSize ? ` \u00B7 ${(job.drawingFileSize / 1024 / 1024).toFixed(2)} MB` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href={job.drawingFileUrl}
+                      download={job.drawingFileName}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-brand-blue text-white font-semibold rounded-lg hover:bg-brand-navy transition-colors text-sm"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download Drawing
+                    </a>
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">{job.fileName}</p>
-                    <p className="text-sm text-gray-500">
-                      STEP File{job.fileSize ? ` \u00B7 ${(job.fileSize / 1024 / 1024).toFixed(2)} MB` : ''}
-                    </p>
+                )}
+                {job.fileUrl && (
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-gray-600 rounded-lg flex items-center justify-center">
+                        <FileBox className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{job.fileName}</p>
+                        <p className="text-sm text-gray-500">
+                          STEP File{job.fileSize ? ` \u00B7 ${(job.fileSize / 1024 / 1024).toFixed(2)} MB` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href={job.fileUrl}
+                      download={job.fileName}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download STEP
+                    </a>
                   </div>
-                </div>
-                <a
-                  href={job.fileUrl}
-                  download={job.fileName}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-blue text-white font-semibold rounded-lg hover:bg-brand-navy transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  Download STEP
-                </a>
+                )}
               </div>
             </Card>
           )}
@@ -316,24 +349,44 @@ export default function JobDetailPage() {
 
           <div className="space-y-6">
             <div className="border-b pb-6">
-              <h4 className="font-semibold text-gray-900 mb-4">CAD File</h4>
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-brand-blue rounded flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-white" />
+              <h4 className="font-semibold text-gray-900 mb-4">Files</h4>
+              <div className="space-y-3">
+                {job.drawingFileUrl && (
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-brand-blue rounded flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{job.drawingFileName}</p>
+                        <p className="text-sm text-gray-600">PDF Drawing</p>
+                      </div>
+                    </div>
+                    <a href={job.drawingFileUrl} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="sm" className="gap-1">
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    </a>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{job.fileName}</p>
-                    <p className="text-sm text-gray-600">
-                      {(job.fileSize / 1024 / 1024).toFixed(2)} MB
-                    </p>
+                )}
+                {job.fileUrl && (
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-600 rounded flex items-center justify-center">
+                        <FileBox className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{job.fileName}</p>
+                        <p className="text-sm text-gray-600">STEP File</p>
+                      </div>
+                    </div>
+                    <a href={job.fileUrl} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="sm" className="gap-1">
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    </a>
                   </div>
-                </div>
-                <a href={job.fileUrl} target="_blank" rel="noopener noreferrer">
-                  <Button variant="ghost" size="sm" className="gap-1">
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </a>
+                )}
               </div>
             </div>
 

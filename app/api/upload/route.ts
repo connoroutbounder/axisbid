@@ -14,17 +14,27 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const file = formData.get('file') as File
+    const fileType = (formData.get('type') as string) || 'step'
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Validate file type
-    if (!file.name.toLowerCase().endsWith('.step') && !file.name.toLowerCase().endsWith('.stp')) {
-      return NextResponse.json(
-        { error: 'Only STEP files (.step, .stp) are supported' },
-        { status: 400 }
-      )
+    // Validate file type based on upload type
+    if (fileType === 'drawing') {
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        return NextResponse.json(
+          { error: 'Drawing must be a PDF file (.pdf)' },
+          { status: 400 }
+        )
+      }
+    } else {
+      if (!file.name.toLowerCase().endsWith('.step') && !file.name.toLowerCase().endsWith('.stp')) {
+        return NextResponse.json(
+          { error: 'Only STEP files (.step, .stp) are supported' },
+          { status: 400 }
+        )
+      }
     }
 
     // Validate file size (50MB max)
@@ -38,19 +48,20 @@ export async function POST(request: NextRequest) {
     // Convert file to buffer
     const buffer = Buffer.from(await file.arrayBuffer())
 
-    // Upload to S3
+    // Upload to Supabase Storage
     const fileUrl = await uploadFile(file.name, buffer, file.type || 'application/octet-stream')
 
-    // Parse STEP file for geometry data
+    // Parse STEP file for geometry data (only for STEP files)
     let geometryData = null
     let complexity = null
 
-    try {
-      geometryData = await parseSTEPFile(buffer)
-      complexity = estimateComplexity(geometryData)
-    } catch (parseError) {
-      console.warn('Failed to parse STEP geometry:', parseError)
-      // Continue without geometry data - user can manually enter details
+    if (fileType !== 'drawing') {
+      try {
+        geometryData = await parseSTEPFile(buffer)
+        complexity = estimateComplexity(geometryData)
+      } catch (parseError) {
+        console.warn('Failed to parse STEP geometry:', parseError)
+      }
     }
 
     return NextResponse.json({
